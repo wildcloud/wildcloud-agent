@@ -57,7 +57,6 @@ module Wildcloud
         stopped = proc do |out, status|
           @components.delete(component)
           @agent.logger.info('ComponentManager') { "Component #{component} stopped with status #{status.exitstatus}" }
-          #@agent.logger.info('ComponentManager') { "Output for #{component}\n#{out}" }
           if !@shutdown && @settings[component]['persistent']
             @agent.logger.info('ComponentManager') { "Component #{component} will be restarted" }
             EventMachine.add_timer(5) do
@@ -66,7 +65,14 @@ module Wildcloud
           end
         end
 
-        @settings[component][:pid] = EventMachine.system("wildcloud-#{component}", started, stopped)
+        command = "wildcloud-#{component}"
+
+        command = "cd #{message['directory']} && #{command}" if message['directory']
+
+        command = "su #{message['user']} -c 'source /etc/profile && #{command}'" if message['user']
+
+        @settings[component][:pid] = EventMachine.system(command, started, stopped)
+
       end
 
       def active_components
@@ -82,7 +88,15 @@ module Wildcloud
 
       def auto_start
         (@agent.config['autostart'] ||= []).each do |component|
-          handle_message('action' => 'start', 'persistent' => true, 'component' => component)
+          options = {'action' => 'start', 'persistent' => true}
+          if component.kind_of?(Hash)
+            options['component'] = component['component']
+            options['user'] = component['user']
+            options['directory'] = component['directory']
+          else
+            options['component'] = component.to_s
+          end
+          handle_message(options)
         end
       end
 

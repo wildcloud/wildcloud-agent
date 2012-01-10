@@ -22,14 +22,15 @@ module Wildcloud
         @interval = @agent.config['heartbeat']['interval']
         @agent.logger.info('Heartbeat', "Will be reporting every #{@interval} seconds")
         @timer = EventMachine.add_periodic_timer(@interval, &method(:heartbeat))
+        @load_monitor = @agent.config['loadmonitor'] && @agent.config['loadmonitor']['active']
       end
 
       def heartbeat
         message = {
             :components => @agent.component_manager.active_components,
-            :load => @agent.load_monitor.report,
             :topic => :heartbeat
         }
+        message[:load] = @agent.load_monitor.report if @load_monitor
         @agent.publish(message, :routing_key => 'heartbeat')
       end
 

@@ -25,10 +25,6 @@ require 'wildcloud/configuration'
 
 require 'singleton'
 
-require 'wildcloud/agent/load_monitor'
-require 'wildcloud/agent/component_manager'
-require 'wildcloud/agent/heartbeat'
-
 module Wildcloud
   module Agent
 
@@ -45,7 +41,7 @@ module Wildcloud
         EventMachine.error_handler(&method(:handle_error))
         start_amqp
         start_component_manager
-        start_load_monitor
+        start_load_monitor if self.config['loadmonitor'] && self.config['loadmonitor']['active']
         start_heartbeat
       end
 
@@ -71,15 +67,18 @@ module Wildcloud
       end
 
       def start_component_manager
+        require 'wildcloud/agent/component_manager'
         @component_manager = ComponentManager.new(self)
         @component_manager.auto_start
       end
 
       def start_load_monitor
+        require 'wildcloud/agent/load_monitor'
         @load_monitor = LoadMonitor.new(self)
       end
 
       def start_heartbeat
+        require 'wildcloud/agent/heartbeat'
         @heartbeat = Heartbeat.new(self)
       end
 

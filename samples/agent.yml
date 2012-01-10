@@ -1,5 +1,12 @@
 heartbeat:
   interval: 1
 
+loadmonitor:
+  active: false
+
 autostart:
   - router
+  - keeper
+  - component: git
+    user: git
+    directory: /home/git
